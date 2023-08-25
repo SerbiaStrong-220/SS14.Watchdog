@@ -109,6 +109,7 @@ namespace SS14.Watchdog.Controllers
 				Content = await result.Content.ReadAsStringAsync(cancellationToken),
 				ContentType = "application/text"
 			};
+
 			return contentRes;
 		}
 

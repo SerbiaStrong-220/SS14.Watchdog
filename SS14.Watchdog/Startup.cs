@@ -16,27 +16,27 @@ using System.Text.Json.Serialization;
 
 namespace SS14.Watchdog
 {
-	public sealed class Startup
-	{
-		public Startup(IConfiguration configuration)
-		{
-			Configuration = configuration;
-		}
+    public sealed class Startup
+    {
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
 
-		public IConfiguration Configuration { get; }
+        public IConfiguration Configuration { get; }
 
-		// This method gets called by the runtime. Use this method to add services to the container.
-		[UsedImplicitly]
-		public void ConfigureServices(IServiceCollection services)
-		{
-			services.Configure<ServersConfiguration>(Configuration.GetSection("Servers"));
+        // This method gets called by the runtime. Use this method to add services to the container.
+        [UsedImplicitly]
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.Configure<ServersConfiguration>(Configuration.GetSection("Servers"));
 
-			services
-				.AddControllers()
-				.AddJsonOptions(opt =>
-				{
-					opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-				});
+            services
+                .AddControllers()
+                .AddJsonOptions(opt =>
+                {
+                    opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
 
             services.AddSingleton<ServerManager>();
             services.AddSingleton<IServerManager>(p => p.GetRequiredService<ServerManager>());
@@ -46,74 +46,74 @@ namespace SS14.Watchdog
             services.AddSingleton<IBackgroundTaskQueue>(p => p.GetRequiredService<BackgroundTaskQueue>());
             services.AddHostedService(p => p.GetRequiredService<BackgroundTaskQueue>()); 
 
-			services.AddSwaggerGen(opt =>
-			{
-				opt.CustomOperationIds(operationOpts =>
-				{
-					if (operationOpts.ActionDescriptor is ControllerActionDescriptor actionDescriptor)
-					{
-						return $"{actionDescriptor.ControllerName}_{actionDescriptor.ActionName}";
-					}
-					return null;
-				});
-			});
-		}
+            services.AddSwaggerGen(opt =>
+            {
+                opt.CustomOperationIds(operationOpts =>
+                {
+                    if (operationOpts.ActionDescriptor is ControllerActionDescriptor actionDescriptor)
+                    {
+                        return $"{actionDescriptor.ControllerName}_{actionDescriptor.ActionName}";
+                    }
+                    return null;
+                });
+            });
+        }
 
-		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-		[UsedImplicitly]
-		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-		{
-			if (env.IsDevelopment())
-			{
-				app.UseDeveloperExceptionPage();
+        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        [UsedImplicitly]
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
 
-				app.UseSwagger();
-				app.UseSwaggerUI();
-			}
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
-			app.UseSerilogRequestLogging();
+            app.UseSerilogRequestLogging();
 
-			Log.ForContext<Startup>().Debug($"Using server GC: {GCSettings.IsServerGC}");
+            Log.ForContext<Startup>().Debug($"Using server GC: {GCSettings.IsServerGC}");
 
-			// app.UseHttpsRedirection();
+            // app.UseHttpsRedirection();
 
-			// Mount binaries/ paths for all the server instances.
-			var serverManager = app.ApplicationServices.GetRequiredService<IServerManager>();
-			foreach (var instance in serverManager.Instances)
-			{
-				var dirPath = Path.Combine(instance.InstanceDir, "binaries");
+            // Mount binaries/ paths for all the server instances.
+            var serverManager = app.ApplicationServices.GetRequiredService<IServerManager>();
+            foreach (var instance in serverManager.Instances)
+            {
+                var dirPath = Path.Combine(instance.InstanceDir, "binaries");
 
-				if (!Directory.Exists(dirPath))
-				{
-					Directory.CreateDirectory(dirPath);
-				}
+                if (!Directory.Exists(dirPath))
+                {
+                    Directory.CreateDirectory(dirPath);
+                }
 
-				var provider = new PhysicalFileProvider(dirPath);
-				var path = $"/instances/{instance.Key}/binaries";
+                var provider = new PhysicalFileProvider(dirPath);
+                var path = $"/instances/{instance.Key}/binaries";
 
-				app.UseStaticFiles(new StaticFileOptions
-				{
-					RequestPath = path,
-					FileProvider = provider
-				});
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    RequestPath = path,
+                    FileProvider = provider
+                });
 
-				if (env.IsDevelopment())
-				{
-					app.UseDirectoryBrowser(new DirectoryBrowserOptions
-					{
-						FileProvider = provider,
-						RequestPath = path
-					});
-				}
-			}
+                if (env.IsDevelopment())
+                {
+                    app.UseDirectoryBrowser(new DirectoryBrowserOptions
+                    {
+                        FileProvider = provider,
+                        RequestPath = path
+                    });
+                }
+            }
 
-			app.UseRouting();
+            app.UseRouting();
 
-			app.UseAuthentication();
+            app.UseAuthentication();
 
-			app.UseAuthorization();
+            app.UseAuthorization();
 
-			app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-		}
-	}
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+        }
+    }
 }

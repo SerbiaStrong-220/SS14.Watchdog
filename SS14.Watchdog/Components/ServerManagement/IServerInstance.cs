@@ -86,5 +86,6 @@ namespace SS14.Watchdog.Components.ServerManagement
 		/// <returns></returns>
 		IEnumerable<string> GetDumps();
 		Task<HttpResponseMessage> ExecuteCommand(string command, CancellationToken cancel);
+		Task<HttpResponseMessage> GetPlayers(CancellationToken cancel);
 	}
 }

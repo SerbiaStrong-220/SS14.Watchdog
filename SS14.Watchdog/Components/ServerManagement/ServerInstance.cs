@@ -19,6 +19,7 @@ using SS14.Watchdog.Components.Updates;
 using SS14.Watchdog.Configuration;
 using SS14.Watchdog.Configuration.Updates;
 using SS14.Watchdog.Controllers;
+using SS14.Watchdog.Controllers.ServerControl;
 
 namespace SS14.Watchdog.Components.ServerManagement
 {
@@ -777,7 +778,31 @@ namespace SS14.Watchdog.Components.ServerManagement
 		public async Task<HttpResponseMessage> ExecuteCommand(string command, CancellationToken cancel)
 		{
 			var resp = await _serverHttpClient.PostAsync($"http://localhost:{_instanceConfig.ApiPort}/console-command",
-				new StringContent(JsonSerializer.Serialize(command)), cancel);
+				new StringContent(JsonSerializer.Serialize(
+					new ConsoleCommandRequestParameters
+					{
+						Command = command,
+						WatchDogToken = Secret ?? string.Empty
+					}
+					)), cancel);
+
+			if (!resp.IsSuccessStatusCode)
+			{
+				_logger.LogWarning("Bad HTTP status code on console-command: {status}", resp.StatusCode);
+			}
+
+			return resp;
+		}
+
+		public async Task<HttpResponseMessage> GetPlayers(CancellationToken cancel)
+		{
+			var resp = await _serverHttpClient.PostAsync($"http://localhost:{_instanceConfig.ApiPort}/players",
+				new StringContent(JsonSerializer.Serialize(
+					new BasicRequestParameters
+					{
+						WatchDogToken = Secret ?? string.Empty
+					}
+					)), cancel);
 
 			if (!resp.IsSuccessStatusCode)
 			{
