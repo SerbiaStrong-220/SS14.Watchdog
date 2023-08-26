@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -94,6 +96,7 @@ namespace SS14.Watchdog.Controllers
 		}
 
 		[HttpPost("execute-command")]
+		[ProducesResponseType(typeof(string), 200)]	
 		public async Task<IActionResult> ExecuteCommand([FromHeader(Name = "Authorization")] string authorization, string key, [FromBody] ExecuteCommandParameters parameters, CancellationToken cancellationToken)
 		{
 			if (!TryAuthorize(authorization, key, out var failure, out var instance))
@@ -102,15 +105,33 @@ namespace SS14.Watchdog.Controllers
 			}
 
 			var result = await instance.ExecuteCommand(parameters.Command, cancellationToken);
+			return await GetContentResponse(result, cancellationToken);
+		}
 
-			var contentRes = new ContentResult
+		private static async Task<ContentResult> GetContentResponse(HttpResponseMessage result, CancellationToken cancellationToken)
+		{
+			var content = await result.Content.ReadAsStringAsync(cancellationToken);
+
+			return new ContentResult
 			{
 				StatusCode = (int)result.StatusCode,
-				Content = await result.Content.ReadAsStringAsync(cancellationToken),
-				ContentType = "application/text"
+				Content = result.StatusCode != System.Net.HttpStatusCode.OK ? content : JsonSerializer.Serialize(content),
+				ContentType = "text/plain"
 			};
+		}
 
-			return contentRes;
+		[HttpGet("players-count")]
+		[ProducesResponseType(typeof(string), 200)]
+		public async Task<IActionResult> GetPlayersCount([FromHeader(Name = "Authorization")] string authorization, string key, CancellationToken cancellationToken)
+		{
+			if (!TryAuthorize(authorization, key, out var failure, out var instance))
+			{
+				return failure;
+			}
+
+			var result = await instance.GetPlayers(cancellationToken);
+
+			return await GetContentResponse(result, cancellationToken);
 		}
 
 		private bool TryAuthorize(string authorization,
