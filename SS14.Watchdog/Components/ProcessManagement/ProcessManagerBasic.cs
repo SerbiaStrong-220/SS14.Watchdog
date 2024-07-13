@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -164,9 +164,13 @@ public sealed class ProcessManagerBasic : IProcessManager
         return Task.FromResult<IProcessHandle?>(new Handle(process));
     }
 
+
     private sealed class Handle : IProcessHandle
     {
         private readonly Process _process;
+
+        public bool HasExited => _process.HasExited;
+        public int ExitCode => _process.ExitCode;
 
         public Handle(Process process)
         {
@@ -184,20 +188,9 @@ public sealed class ProcessManagerBasic : IProcessManager
             await _process.WaitForExitAsync(cancel);
         }
 
-        public Task<ProcessExitStatus?> GetExitStatusAsync()
-        {
-            if (!_process.HasExited)
-                return Task.FromResult<ProcessExitStatus?>(null);
-
-            var code = _process.ExitCode;
-            return Task.FromResult<ProcessExitStatus?>(new ProcessExitStatus(ProcessExitReason.ExitCode, code));
-        }
-
-        public Task Kill()
+        public void Kill()
         {
             _process.Kill(entireProcessTree: true);
-
-            return Task.CompletedTask;
         }
     }
 }

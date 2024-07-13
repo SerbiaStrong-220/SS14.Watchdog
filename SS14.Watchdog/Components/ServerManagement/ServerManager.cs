@@ -168,7 +168,7 @@ namespace SS14.Watchdog.Components.ServerManagement
                 // At least try to kill the server processes I guess (if necessary).
                 foreach (var instance in _instances.Values)
                 {
-                    await instance.ForceShutdown();
+                    instance.ForceShutdown();
                 }
             }
         }

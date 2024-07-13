@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Diagnostics.NETCore.Client;
@@ -41,13 +41,14 @@ public sealed record ProcessStartData(
 /// </summary>
 public interface IProcessHandle
 {
+    bool HasExited { get; }
+    int ExitCode { get; }
+
     void DumpProcess(string file, DumpType type);
 
     Task WaitForExitAsync(CancellationToken cancel = default);
 
-    Task Kill();
-
-    Task<ProcessExitStatus?> GetExitStatusAsync();
+    void Kill();
 }
 
 /// <summary>

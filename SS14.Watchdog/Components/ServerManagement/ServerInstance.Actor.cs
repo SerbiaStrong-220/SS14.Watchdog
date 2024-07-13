@@ -208,7 +208,7 @@ public sealed partial class ServerInstance
         }
     }
 
-    private async Task RunCommandTimedOut(CommandTimedOut timedOut, CancellationToken cancel)
+    private Task RunCommandTimedOut(CommandTimedOut timedOut, CancellationToken cancel)
     {
         if (timedOut.TimeoutCounter != _serverTimeoutNumber)
         {
@@ -217,11 +217,11 @@ public sealed partial class ServerInstance
             // Guard against race condition: the timeout could happen just before we can cancel it
             // (due to ping, server shutdown, etc).
             // We use the sequence number to avoid letting it go through in that case.
-            return;
+            return Task.CompletedTask;
         }
 
-        await TimeoutKill();
-        return;
+        TimeoutKill();
+        return Task.CompletedTask;
     }
 
     private Task RunCommandServerPing(CommandServerPing ping, CancellationToken cancel)
@@ -397,9 +397,9 @@ public sealed partial class ServerInstance
         try
         {
             await _runningServer.WaitForExitAsync(cancel);
-            var exitStatus = await _runningServer.GetExitStatusAsync();
 
-            _logger.LogInformation("{Key} shut down with status {ExitStatus}", Key, exitStatus);
+            _logger.LogInformation("{Key} shut down with exit code {ExitCode}", Key,
+                _runningServer.ExitCode);
 
             await _commandQueue.Writer.WriteAsync(new CommandServerExit(startNumber, _runningServer.ExitCode), cancel);
         }

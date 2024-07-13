@@ -246,10 +246,9 @@ namespace SS14.Watchdog.Components.ServerManagement
             }
         }
 
-        public async Task ForceShutdown()
+        public void ForceShutdown()
         {
-            if (_runningServer != null)
-                await _runningServer.Kill();
+            _runningServer?.Kill();
         }
 
         public async Task PingReceived()
@@ -286,7 +285,7 @@ namespace SS14.Watchdog.Components.ServerManagement
             }
         }
 
-        private async Task TimeoutKill()
+        private void TimeoutKill()
         {
             _logger.LogWarning("{Key}: timed out, killing", Key);
 
@@ -325,10 +324,11 @@ namespace SS14.Watchdog.Components.ServerManagement
                 _logger.LogInformation("{Key}: killing process...", Key);
             }
 
-            await _runningServer.Kill();
+            _runningServer.Kill();
 
             // Monitor will notice server died and pick it up.
         }
+
 
         public void HandleUpdateCheck()
         {
@@ -369,7 +369,7 @@ namespace SS14.Watchdog.Components.ServerManagement
         public async Task ForceShutdownServerAsync(CancellationToken cancel = default)
         {
             var proc = _runningServer;
-            if (proc == null || await proc.GetExitStatusAsync() != null)
+            if (proc == null || proc.HasExited)
             {
                 return;
             }
@@ -384,13 +384,13 @@ namespace SS14.Watchdog.Components.ServerManagement
             catch (HttpRequestException e)
             {
                 _logger.LogInformation(e, "Exception sending shutdown notification to server. Killing.");
-                await proc.Kill();
+                proc.Kill();
                 return;
             }
             catch (OperationCanceledException)
             {
                 _logger.LogInformation("Timeout sending shutdown notification to server. Killing.");
-                await proc.Kill();
+                proc.Kill();
                 return;
             }
 
@@ -399,11 +399,9 @@ namespace SS14.Watchdog.Components.ServerManagement
             // Give it 5 seconds to shut down.
             var waitCts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
             waitCts.CancelAfter(5000);
-            ProcessExitStatus? status;
             try
             {
                 await proc.WaitForExitAsync(cancel);
-                status = await proc.GetExitStatusAsync();
             }
             catch (OperationCanceledException)
             {
@@ -411,7 +409,7 @@ namespace SS14.Watchdog.Components.ServerManagement
                 proc.Kill();
             }
 
-            _logger.LogInformation("{Key} shut down gracefully ({Status})", Key, status);
+            _logger.LogInformation("{Key} shut down gracefully", Key);
         }
 
         public async Task SendShutdownNotificationAsync(CancellationToken cancel = default)
