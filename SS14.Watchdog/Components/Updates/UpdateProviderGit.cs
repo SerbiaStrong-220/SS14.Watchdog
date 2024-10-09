@@ -38,7 +38,7 @@ namespace SS14.Watchdog.Components.Updates
             _configuration = config;
         }
 
-        private async Task<int> CommandHelper(string cd, string command, string[] args, CancellationToken cancel = default)
+        private static async Task<int> CommandHelper(string cd, string command, string[] args, CancellationToken cancel = default)
         {
             var si = new ProcessStartInfo {
                 FileName = command, CreateNoWindow = true, UseShellExecute = true,
@@ -58,7 +58,7 @@ namespace SS14.Watchdog.Components.Updates
             return proc.ExitCode;
         }
 
-        private async Task CommandHelperChecked(string reason, string cd, string command, string[] args, CancellationToken cancel = default)
+        public static async Task CommandHelperChecked(string reason, string cd, string command, string[] args, CancellationToken cancel = default)
         {
             int exitCode;
             try

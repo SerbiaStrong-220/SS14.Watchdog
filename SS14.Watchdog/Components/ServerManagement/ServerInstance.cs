@@ -119,6 +119,21 @@ namespace SS14.Watchdog.Components.ServerManagement
                         configuration);
                     break;
 
+                case "LocalWithBuild":
+                    var localWithBuildConfig = configuration
+                        .GetSection($"Servers:Instances:{key}:Updates")
+                        .Get<UpdateProviderLocalConfiguration>();
+
+                    if (localWithBuildConfig == null)
+                        throw new InvalidOperationException("Invalid configuration");
+
+                    _updateProvider = new UpdateProviderLocalWithBuild(
+                        this,
+                        localWithBuildConfig,
+                        serviceProvider.GetRequiredService<ILogger<UpdateProviderLocalWithBuild>>(),
+                        configuration);
+                    break;
+
                 case "Git":
                     var gitConfig = configuration
                         .GetSection($"Servers:Instances:{key}:Updates")
