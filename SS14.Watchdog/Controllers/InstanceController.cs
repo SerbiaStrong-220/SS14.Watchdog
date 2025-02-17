@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using SS14.Watchdog.Components.ServerManagement;
@@ -52,6 +53,17 @@ namespace SS14.Watchdog.Controllers
 
             instance.HandleUpdateCheck();
             return Ok();
+        }
+
+        [HttpPost("status")]
+        public async Task<ActionResult<HttpResponseMessage>> ServerStatus([FromHeader(Name = "Authorization")] string authorization, string key)
+        {
+            if (!TryAuthorize(authorization, key, out var failure, out var instance))
+            {
+                return (ActionResult)failure;
+            }
+
+            return await instance.GetServerStatusAsync();
         }
 
         [NonAction]

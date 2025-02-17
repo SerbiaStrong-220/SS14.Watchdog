@@ -356,6 +356,11 @@ namespace SS14.Watchdog.Components.ServerManagement
             }
         }
 
+        public Task<HttpResponseMessage> GetServerStatusAsync(CancellationToken cancel = default)
+        {
+            return _serverHttpClient.GetAsync($"http://localhost:{_instanceConfig.ApiPort}/server-status", cancel);
+        }
+
         public async Task DoRestartCommandAsync(CancellationToken cancel = default)
         {
             await _commandQueue.Writer.WriteAsync(new CommandRestart(), cancel);

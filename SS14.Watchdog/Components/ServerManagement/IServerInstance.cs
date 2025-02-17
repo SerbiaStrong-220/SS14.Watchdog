@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -45,6 +46,8 @@ namespace SS14.Watchdog.Components.ServerManagement
         ///     Check for update and inform game server of available update if there is one.
         /// </summary>
         void HandleUpdateCheck();
+
+        Task<HttpResponseMessage> GetServerStatusAsync(CancellationToken cancel = default);
 
         /// <summary>
         ///     Try to tell the server to shut down gracefully.
