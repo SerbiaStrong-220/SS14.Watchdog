@@ -63,9 +63,7 @@ namespace SS14.Watchdog.Controllers
                 return (ActionResult)failure;
             }
 
-            var t = await instance.GetServerStatusAsync();
-
-            return t;
+            return await instance.GetServerStatusAsync();
         }
 
         [NonAction]
