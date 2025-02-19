@@ -55,15 +55,17 @@ namespace SS14.Watchdog.Controllers
             return Ok();
         }
 
-        [HttpPost("status")]
-        public async Task<ActionResult<HttpResponseMessage>> ServerStatus([FromHeader(Name = "Authorization")] string authorization, string key)
+        [HttpGet("status")]
+        public async Task<ActionResult<string?>> ServerStatus([FromHeader(Name = "Authorization")] string authorization, string key)
         {
             if (!TryAuthorize(authorization, key, out var failure, out var instance))
             {
                 return (ActionResult)failure;
             }
 
-            return await instance.GetServerStatusAsync();
+            var t = await instance.GetServerStatusAsync();
+
+            return t;
         }
 
         [NonAction]

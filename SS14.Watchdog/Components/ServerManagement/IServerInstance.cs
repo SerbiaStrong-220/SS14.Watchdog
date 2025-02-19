@@ -47,7 +47,7 @@ namespace SS14.Watchdog.Components.ServerManagement
         /// </summary>
         void HandleUpdateCheck();
 
-        Task<HttpResponseMessage> GetServerStatusAsync(CancellationToken cancel = default);
+        Task<string?> GetServerStatusAsync(CancellationToken cancel = default);
 
         /// <summary>
         ///     Try to tell the server to shut down gracefully.
