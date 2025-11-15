@@ -1,5 +1,8 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -15,6 +19,7 @@ using SS14.Watchdog.Components.BackgroundTasks;
 using SS14.Watchdog.Components.DataManagement;
 using SS14.Watchdog.Components.Notifications;
 using SS14.Watchdog.Components.ProcessManagement;
+using SS14.Watchdog.Components.ServerManagement.ApiModels;
 using SS14.Watchdog.Components.Updates;
 using SS14.Watchdog.Configuration;
 using SS14.Watchdog.Configuration.Updates;
@@ -429,6 +434,33 @@ namespace SS14.Watchdog.Components.ServerManagement
         {
             // ReSharper disable once RedundantDefaultMemberInitializer
             public string Reason { get; set; } = default!;
+        }
+
+        public IEnumerable<ReplayFileInfo> GetReplays()
+        {
+            try
+            {
+                var dumpDir = Path.Combine(InstanceDir, "data", "replays");
+
+                var replaysDirectory = new DirectoryInfo(dumpDir);
+
+                var replays = replaysDirectory.GetFiles();
+
+                return replays.Select(x => ReplayFileInfo.Create(x.Name, x.Length));
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "{Key}: exception while get replays", Key);
+            }
+
+            return [];
+        }
+
+        public Stream? GetReplay(string fileName)
+        {
+            var dumpFile = Path.Combine(InstanceDir, "data", "replays", fileName);
+
+            return File.Exists(dumpFile) ? File.OpenRead(dumpFile) : null;
         }
     }
 }
