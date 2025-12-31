@@ -1,9 +1,7 @@
-using System.Net.Http;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using SS14.Watchdog.Components.ServerManagement.ApiModels;
 
 namespace SS14.Watchdog.Components.ServerManagement

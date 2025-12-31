@@ -1,12 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Net.Http;
-using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using SS14.Watchdog.Components.ServerManagement;
 using SS14.Watchdog.Utility;
-using YamlDotNet.Core.Tokens;
-using SIOFile = System.IO.File;
 
 namespace SS14.Watchdog.Controllers
 {
