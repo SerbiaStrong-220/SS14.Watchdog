@@ -361,6 +361,31 @@ namespace SS14.Watchdog.Components.ServerManagement
             }
         }
 
+        public async Task<string?> GetServerStatusAsync(CancellationToken cancel = default)
+        {
+            try
+            { 
+                var rsp = await _serverHttpClient.GetAsync($"http://localhost:{_instanceConfig.ApiPort}/server-status", cancel);
+
+                var content = await rsp.Content.ReadAsStringAsync(cancel);
+
+                if (!rsp.IsSuccessStatusCode)
+                {
+                    _logger.LogError("{Key}: unsuccessful code while get server status. {Msg}", Key, content);
+
+                    return null;
+                }
+
+                return content;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "{Key}: exception while get server status", Key);
+            }
+
+            return null;
+        }
+
         public async Task DoRestartCommandAsync(CancellationToken cancel = default)
         {
             await _commandQueue.Writer.WriteAsync(new CommandRestart(), cancel);
