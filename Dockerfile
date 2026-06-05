@@ -194,7 +194,7 @@ RUN busybox rm -vf appsettings.yml \
   && busybox ln -s /data/ss14/instances instances \
   && busybox ln -s /data/ss14/configs/watchdog.appsettings.yml appsettings.yml
 
-# last checks for ffmpeg and it's libs
+# last checks for ffmpeg and its libs
 RUN ffmpeg -hide_banner -version && \
     ffmpeg -hide_banner -protocols | grep -E '^[[:space:]]*unix$' && \
     ffmpeg -hide_banner -muxers | grep -E '[[:space:]]E[[:space:]]+ogg' && \
