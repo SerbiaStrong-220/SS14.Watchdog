@@ -49,7 +49,7 @@ RUN apt-get update \
         pax-utils \
         libvorbis-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && wget -qO- "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" | tar JxvC .
+    && wget -qO- "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" | tar -Jx -C .
 
 WORKDIR /usr/src/ffmpeg-${FFMPEG_VERSION}
 RUN ./configure \
