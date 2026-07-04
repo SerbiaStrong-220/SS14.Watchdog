@@ -34,6 +34,11 @@ namespace SS14.Watchdog.Components.ServerManagement
         string? ApiToken { get; }
 
         /// <summary>
+        ///     Additional token required for forwarding console commands to the game server.
+        /// </summary>
+        string? CommandToken { get; }
+
+        /// <summary>
         ///     The root filesystem directory for the instance, which contains config file, data,
         ///     and probably binaries too.
         /// </summary>
@@ -66,6 +71,7 @@ namespace SS14.Watchdog.Components.ServerManagement
 
         Task ForceShutdownServerAsync(CancellationToken cancel = default);
         Task DoRestartCommandAsync(CancellationToken cancel = default);
+        Task DoConsoleCommandAsync(string command, CancellationToken cancel = default);
 
         /// <summary>
         /// Instruct that the server instance should be stopped gracefully.

@@ -16,6 +16,8 @@ namespace SS14.Watchdog.Configuration
         /// </summary>
         public string? ApiTokenFile { get; set; }
         public string? ApiToken { get; set; }
+        public string? CommandTokenFile { get; set; }
+        public string? CommandToken { get; set; }
         public ushort ApiPort { get; set; }
 
         public string RunCommand { get; set; } = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)

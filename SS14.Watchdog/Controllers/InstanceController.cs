@@ -1,4 +1,7 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using SS14.Watchdog.Components.ServerManagement;
@@ -51,6 +54,53 @@ namespace SS14.Watchdog.Controllers
 
             instance.HandleUpdateCheck();
             return Ok();
+        }
+
+        [HttpPost("command")]
+        public async Task<IActionResult> Command(
+            [FromHeader(Name = "Authorization")] string authorization,
+            [FromHeader(Name = "X-Command-Token")] string? commandToken,
+            string key,
+            [FromBody] ConsoleCommandRequest? request)
+        {
+            if (!TryAuthorize(authorization, key, out var failure, out var instance))
+            {
+                return failure;
+            }
+
+            if (!TryAuthorizeCommand(commandToken, instance, out failure))
+            {
+                return failure;
+            }
+
+            if (request == null)
+            {
+                return BadRequest("Request body is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Command))
+            {
+                return BadRequest("Command must not be empty.");
+            }
+
+            if (request.Command.Contains('\n') || request.Command.Contains('\r'))
+            {
+                return BadRequest("Command must be a single line.");
+            }
+
+            try
+            {
+                await instance.DoConsoleCommandAsync(request.Command);
+                return Ok();
+            }
+            catch (NotSupportedException e)
+            {
+                return Conflict(e.Message);
+            }
+            catch (InvalidOperationException e)
+            {
+                return Conflict(e.Message);
+            }
         }
 
         [HttpGet("status")]
@@ -128,6 +178,41 @@ namespace SS14.Watchdog.Controllers
             }
 
             return true;
+        }
+
+        [NonAction]
+        public bool TryAuthorizeCommand(
+            string? commandToken,
+            IServerInstance instance,
+            [NotNullWhen(false)] out IActionResult? failure)
+        {
+            if (string.IsNullOrEmpty(instance.CommandToken))
+            {
+                failure = Conflict("Command token is not configured.");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(commandToken) || !FixedTimeEquals(commandToken, instance.CommandToken))
+            {
+                failure = Unauthorized();
+                return false;
+            }
+
+            failure = null;
+            return true;
+        }
+
+        private static bool FixedTimeEquals(string left, string right)
+        {
+            var leftBytes = Encoding.UTF8.GetBytes(left);
+            var rightBytes = Encoding.UTF8.GetBytes(right);
+
+            return CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
+        }
+
+        public sealed class ConsoleCommandRequest
+        {
+            public string Command { get; set; } = default!;
         }
     }
 }

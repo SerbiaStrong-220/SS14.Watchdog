@@ -39,6 +39,7 @@ namespace SS14.Watchdog.Components.ServerManagement
         public string Key { get; }
         public string? Secret { get; private set; }
         public string? ApiToken => _instanceConfig.ApiToken;
+        public string? CommandToken => _instanceConfig.CommandToken;
 
         public bool IsRunning => _runningServer != null;
 
@@ -92,6 +93,11 @@ namespace SS14.Watchdog.Components.ServerManagement
             if (!string.IsNullOrEmpty(_instanceConfig.ApiTokenFile))
             {
                 _instanceConfig.ApiToken = File.ReadAllText(_instanceConfig.ApiTokenFile);
+            }
+
+            if (!string.IsNullOrEmpty(_instanceConfig.CommandTokenFile))
+            {
+                _instanceConfig.CommandToken = File.ReadAllText(_instanceConfig.CommandTokenFile);
             }
 
             switch (instanceConfig.UpdateType)
@@ -394,6 +400,13 @@ namespace SS14.Watchdog.Components.ServerManagement
         public async Task DoStopCommandAsync(ServerInstanceStopCommand stopCommand, CancellationToken cancel = default)
         {
             await _commandQueue.Writer.WriteAsync(new CommandStop(stopCommand), cancel);
+        }
+
+        public async Task DoConsoleCommandAsync(string command, CancellationToken cancel = default)
+        {
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            await _commandQueue.Writer.WriteAsync(new CommandConsoleInput(command, completion), cancel);
+            await completion.Task.WaitAsync(cancel);
         }
 
         public async Task ForceShutdownServerAsync(CancellationToken cancel = default)

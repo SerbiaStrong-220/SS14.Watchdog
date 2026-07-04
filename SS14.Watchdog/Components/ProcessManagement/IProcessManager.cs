@@ -45,6 +45,8 @@ public interface IProcessHandle
 {
     void DumpProcess(string file, DumpType type);
 
+    Task WriteInputLineAsync(string line, CancellationToken cancel = default);
+
     Task WaitForExitAsync(CancellationToken cancel = default);
 
     Task Kill();
