@@ -215,6 +215,8 @@ public sealed class ProcessManagerBasic : IProcessManager
             {
                 while (!_process.HasExited && !_inputKeepAliveCts.IsCancellationRequested)
                 {
+                    // Robust.Server's non-interactive console reader times out after 2 seconds
+                    // if no line is available. Empty commands are ignored by the console host.
                     await Task.Delay(TimeSpan.FromSeconds(1), _inputKeepAliveCts.Token);
                     await WriteInputLineAsync("", _inputKeepAliveCts.Token);
                 }
