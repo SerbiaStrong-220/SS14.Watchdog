@@ -85,7 +85,7 @@ public sealed class ProcessManagerBasic : IProcessManager
             PersistPid(instance, process);
         }
 
-        return Task.FromResult<IProcessHandle>(new Handle(process, canWriteInput: true));
+        return Task.FromResult<IProcessHandle>(new Handle(process, canWriteInput: true, _logger));
     }
 
     private void PersistPid(IServerInstance instance, Process process)
@@ -162,21 +162,23 @@ public sealed class ProcessManagerBasic : IProcessManager
 
         _logger.LogDebug("Process looks good, guess we're using this!");
 
-        return Task.FromResult<IProcessHandle?>(new Handle(process, canWriteInput: false) { IsRecovered = true });
+        return Task.FromResult<IProcessHandle?>(new Handle(process, canWriteInput: false, _logger) { IsRecovered = true });
     }
 
     private sealed class Handle : IProcessHandle
     {
         private readonly Process _process;
         private readonly bool _canWriteInput;
+        private readonly ILogger<ProcessManagerBasic> _logger;
         private readonly SemaphoreSlim _inputLock = new(1, 1);
         private readonly CancellationTokenSource _inputKeepAliveCts = new();
         public bool IsRecovered;
 
-        public Handle(Process process, bool canWriteInput)
+        public Handle(Process process, bool canWriteInput, ILogger<ProcessManagerBasic> logger)
         {
             _process = process;
             _canWriteInput = canWriteInput;
+            _logger = logger;
 
             if (_canWriteInput)
             {
@@ -219,12 +221,19 @@ public sealed class ProcessManagerBasic : IProcessManager
             }
             catch (OperationCanceledException)
             {
+                _logger.LogInformation("Server stdin keepalive stopped.");
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException e) when (_process.HasExited || _inputKeepAliveCts.IsCancellationRequested)
             {
+                _logger.LogInformation(e, "Server stdin keepalive stopped.");
             }
-            catch (IOException)
+            catch (IOException e) when (_process.HasExited || _inputKeepAliveCts.IsCancellationRequested)
             {
+                _logger.LogInformation(e, "Server stdin keepalive stopped.");
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Server stdin keepalive failed unexpectedly.");
             }
         }
 
