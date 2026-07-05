@@ -207,7 +207,8 @@ namespace SS14.Watchdog.Controllers
             var leftBytes = Encoding.UTF8.GetBytes(left);
             var rightBytes = Encoding.UTF8.GetBytes(right);
 
-            return CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
+            return leftBytes.Length == rightBytes.Length &&
+                   CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
         }
 
         public sealed class ConsoleCommandRequest

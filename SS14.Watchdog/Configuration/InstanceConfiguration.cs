@@ -16,6 +16,11 @@ namespace SS14.Watchdog.Configuration
         /// </summary>
         public string? ApiTokenFile { get; set; }
         public string? ApiToken { get; set; }
+
+        /// <summary>
+        ///     Command token will be read from this file if set.
+        ///     Takes priority over <see cref="CommandToken"/> if not null.
+        /// </summary>
         public string? CommandTokenFile { get; set; }
         public string? CommandToken { get; set; }
         public ushort ApiPort { get; set; }
