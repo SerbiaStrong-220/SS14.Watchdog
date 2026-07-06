@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -97,6 +98,14 @@ namespace SS14.Watchdog.Controllers
             {
                 return Conflict(e.Message);
             }
+            catch (IOException)
+            {
+                return Conflict("Failed to write command to the server process.");
+            }
+            catch (ObjectDisposedException)
+            {
+                return Conflict("Failed to write command to the server process.");
+            }
             catch (InvalidOperationException e)
             {
                 return Conflict(e.Message);
@@ -150,6 +159,12 @@ namespace SS14.Watchdog.Controllers
             [NotNullWhen(true)] out IServerInstance? instance)
         {
             instance = null;
+
+            if (string.IsNullOrEmpty(authorization))
+            {
+                failure = Unauthorized();
+                return false;
+            }
 
             if (!AuthorizationUtility.TryParseBasicAuthentication(authorization, out failure, out var authKey,
                 out var token))
