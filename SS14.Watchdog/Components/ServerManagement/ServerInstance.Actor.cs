@@ -141,6 +141,9 @@ public sealed partial class ServerInstance
             case CommandStop stop:
                 await RunCommandStop(stop.StopCommand, cancel);
                 break;
+            case CommandConsoleInput consoleInput:
+                await RunCommandConsoleInput(consoleInput, cancel);
+                break;
             case CommandServerPing ping:
                 await RunCommandServerPing(ping, cancel);
                 break;
@@ -152,6 +155,22 @@ public sealed partial class ServerInstance
                 break;
             default:
                 throw new InvalidOperationException($"Invalid command: {command}");
+        }
+    }
+
+    private async Task RunCommandConsoleInput(CommandConsoleInput command, CancellationToken cancel)
+    {
+        try
+        {
+            if (_runningServer == null || await _runningServer.GetExitStatusAsync() != null)
+                throw new InvalidOperationException("Server is not running.");
+
+            await _runningServer.WriteInputLineAsync(command.Input, cancel);
+            command.Completion.SetResult();
+        }
+        catch (Exception e)
+        {
+            command.Completion.SetException(e);
         }
     }
 
@@ -497,6 +516,11 @@ public sealed partial class ServerInstance
     /// Command to stop the server gracefully, without restarting it afterwards.
     /// </summary>
     private sealed record CommandStop(ServerInstanceStopCommand StopCommand) : Command;
+
+    /// <summary>
+    /// Console input to forward to the running server process.
+    /// </summary>
+    private sealed record CommandConsoleInput(string Input, TaskCompletionSource Completion) : Command;
 
     /// <summary>
     /// The server has failed to ping back in time, grab the axe!

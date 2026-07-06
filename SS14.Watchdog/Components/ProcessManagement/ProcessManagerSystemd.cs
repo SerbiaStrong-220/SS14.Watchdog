@@ -274,6 +274,11 @@ public sealed class ProcessManagerSystemd : IProcessManager, IHostedService
             // throw new System.NotImplementedException();
         }
 
+        public Task WriteInputLineAsync(string line, CancellationToken cancel = default)
+        {
+            throw new NotSupportedException("Writing to server stdin is not supported by the systemd process manager.");
+        }
+
         public async Task Kill()
         {
             try
