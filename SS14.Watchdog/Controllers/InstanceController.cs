@@ -90,7 +90,7 @@ namespace SS14.Watchdog.Controllers
 
             try
             {
-                await instance.DoConsoleCommandAsync(request.Command);
+                await instance.DoConsoleCommandAsync(request.Command, HttpContext.RequestAborted);
                 return Ok();
             }
             catch (NotSupportedException e)
@@ -169,9 +169,7 @@ namespace SS14.Watchdog.Controllers
                 return false;
             }
 
-            // TODO: we probably need constant-time comparisons for this?
-            // Maybe?
-            if (token != instance.ApiToken)
+            if (string.IsNullOrEmpty(instance.ApiToken) || !FixedTimeEquals(token, instance.ApiToken))
             {
                 failure = Unauthorized();
                 return false;
