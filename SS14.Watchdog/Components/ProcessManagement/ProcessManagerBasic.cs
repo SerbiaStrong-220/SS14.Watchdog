@@ -48,6 +48,7 @@ public sealed class ProcessManagerBasic : IProcessManager
         startInfo.FileName = data.Program;
         startInfo.WorkingDirectory = data.WorkingDirectory;
         startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardInput = true;
 
         foreach (var argument in data.Arguments)
         {
@@ -84,7 +85,7 @@ public sealed class ProcessManagerBasic : IProcessManager
             PersistPid(instance, process);
         }
 
-        return Task.FromResult<IProcessHandle>(new Handle(process));
+        return Task.FromResult<IProcessHandle>(new Handle(process, canWriteInput: true, _logger));
     }
 
     private void PersistPid(IServerInstance instance, Process process)
@@ -161,17 +162,28 @@ public sealed class ProcessManagerBasic : IProcessManager
 
         _logger.LogDebug("Process looks good, guess we're using this!");
 
-        return Task.FromResult<IProcessHandle?>(new Handle(process) { IsRecovered = true });
+        return Task.FromResult<IProcessHandle?>(new Handle(process, canWriteInput: false, _logger) { IsRecovered = true });
     }
 
     private sealed class Handle : IProcessHandle
     {
         private readonly Process _process;
+        private readonly bool _canWriteInput;
+        private readonly ILogger<ProcessManagerBasic> _logger;
+        private readonly SemaphoreSlim _inputLock = new(1, 1);
+        private readonly CancellationTokenSource _inputKeepAliveCts = new();
         public bool IsRecovered;
 
-        public Handle(Process process)
+        public Handle(Process process, bool canWriteInput, ILogger<ProcessManagerBasic> logger)
         {
             _process = process;
+            _canWriteInput = canWriteInput;
+            _logger = logger;
+
+            if (_canWriteInput)
+            {
+                _ = KeepInputAlive();
+            }
         }
 
         public void DumpProcess(string file, DumpType type)
@@ -180,9 +192,63 @@ public sealed class ProcessManagerBasic : IProcessManager
             client.WriteDump(type, file);
         }
 
+        public async Task WriteInputLineAsync(string line, CancellationToken cancel = default)
+        {
+            if (!_canWriteInput)
+                throw new NotSupportedException("Writing to server stdin is not supported for recovered server processes.");
+
+            await _inputLock.WaitAsync(cancel);
+            try
+            {
+                await _process.StandardInput.WriteLineAsync(line.AsMemory(), cancel);
+                await _process.StandardInput.FlushAsync(cancel);
+            }
+            finally
+            {
+                _inputLock.Release();
+            }
+        }
+
+        private async Task KeepInputAlive()
+        {
+            try
+            {
+                while (!_process.HasExited && !_inputKeepAliveCts.IsCancellationRequested)
+                {
+                    // Robust.Server's non-interactive console reader times out after 2 seconds
+                    // if no line is available. Empty commands are ignored by the console host.
+                    await Task.Delay(TimeSpan.FromSeconds(1), _inputKeepAliveCts.Token);
+                    await WriteInputLineAsync("", _inputKeepAliveCts.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Server stdin keepalive stopped.");
+            }
+            catch (InvalidOperationException e) when (_process.HasExited || _inputKeepAliveCts.IsCancellationRequested)
+            {
+                _logger.LogInformation(e, "Server stdin keepalive stopped.");
+            }
+            catch (IOException e) when (_process.HasExited || _inputKeepAliveCts.IsCancellationRequested)
+            {
+                _logger.LogInformation(e, "Server stdin keepalive stopped.");
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Server stdin keepalive failed unexpectedly.");
+            }
+        }
+
         public async Task WaitForExitAsync(CancellationToken cancel = default)
         {
-            await _process.WaitForExitAsync(cancel);
+            try
+            {
+                await _process.WaitForExitAsync(cancel);
+            }
+            finally
+            {
+                await _inputKeepAliveCts.CancelAsync();
+            }
         }
 
         public Task<ProcessExitStatus?> GetExitStatusAsync()
@@ -203,6 +269,7 @@ public sealed class ProcessManagerBasic : IProcessManager
 
         public Task Kill()
         {
+            _inputKeepAliveCts.Cancel();
             _process.Kill(entireProcessTree: true);
 
             return Task.CompletedTask;

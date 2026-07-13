@@ -1,4 +1,8 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using SS14.Watchdog.Components.ServerManagement;
@@ -53,6 +57,61 @@ namespace SS14.Watchdog.Controllers
             return Ok();
         }
 
+        [HttpPost("command")]
+        public async Task<IActionResult> Command(
+            [FromHeader(Name = "Authorization")] string authorization,
+            [FromHeader(Name = "X-Command-Token")] string? commandToken,
+            string key,
+            [FromBody] ConsoleCommandRequest? request)
+        {
+            if (!TryAuthorize(authorization, key, out var failure, out var instance))
+            {
+                return failure;
+            }
+
+            if (!TryAuthorizeCommand(commandToken, instance, out failure))
+            {
+                return failure;
+            }
+
+            if (request == null)
+            {
+                return BadRequest("Request body is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Command))
+            {
+                return BadRequest("Command must not be empty.");
+            }
+
+            if (request.Command.Contains('\n') || request.Command.Contains('\r'))
+            {
+                return BadRequest("Command must be a single line.");
+            }
+
+            try
+            {
+                await instance.DoConsoleCommandAsync(request.Command, HttpContext.RequestAborted);
+                return Ok();
+            }
+            catch (NotSupportedException e)
+            {
+                return Conflict(e.Message);
+            }
+            catch (IOException)
+            {
+                return Conflict("Failed to write command to the server process.");
+            }
+            catch (ObjectDisposedException)
+            {
+                return Conflict("Failed to write command to the server process.");
+            }
+            catch (InvalidOperationException e)
+            {
+                return Conflict(e.Message);
+            }
+        }
+
         [HttpGet("status")]
         public async Task<ActionResult<string?>> ServerStatus([FromHeader(Name = "Authorization")] string authorization, string key)
         {
@@ -101,6 +160,12 @@ namespace SS14.Watchdog.Controllers
         {
             instance = null;
 
+            if (string.IsNullOrEmpty(authorization))
+            {
+                failure = Unauthorized();
+                return false;
+            }
+
             if (!AuthorizationUtility.TryParseBasicAuthentication(authorization, out failure, out var authKey,
                 out var token))
             {
@@ -119,15 +184,49 @@ namespace SS14.Watchdog.Controllers
                 return false;
             }
 
-            // TODO: we probably need constant-time comparisons for this?
-            // Maybe?
-            if (token != instance.ApiToken)
+            if (string.IsNullOrEmpty(instance.ApiToken) || !FixedTimeEquals(token, instance.ApiToken))
             {
                 failure = Unauthorized();
                 return false;
             }
 
             return true;
+        }
+
+        [NonAction]
+        public bool TryAuthorizeCommand(
+            string? commandToken,
+            IServerInstance instance,
+            [NotNullWhen(false)] out IActionResult? failure)
+        {
+            if (string.IsNullOrEmpty(instance.CommandToken))
+            {
+                failure = Conflict("Command token is not configured.");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(commandToken) || !FixedTimeEquals(commandToken, instance.CommandToken))
+            {
+                failure = Unauthorized();
+                return false;
+            }
+
+            failure = null;
+            return true;
+        }
+
+        private static bool FixedTimeEquals(string left, string right)
+        {
+            var leftBytes = Encoding.UTF8.GetBytes(left);
+            var rightBytes = Encoding.UTF8.GetBytes(right);
+
+            return leftBytes.Length == rightBytes.Length &&
+                   CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
+        }
+
+        public sealed class ConsoleCommandRequest
+        {
+            public string Command { get; set; } = default!;
         }
     }
 }
