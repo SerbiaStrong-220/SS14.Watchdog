@@ -81,6 +81,7 @@ RUN ./configure \
     --enable-filter=highpass \
     --enable-filter=lowpass \
     --enable-filter=acrusher \
+    --enable-filter=aecho \
     --enable-filter=aresample \
     --enable-filter=aformat \
     --enable-filter=anull \
@@ -90,7 +91,7 @@ RUN ./configure \
   && make -j"$(nproc)" \
   && make install \
   && strip /usr/src/ffmpeg/bin/ffmpeg \
-  && ( /usr/src/ffmpeg/bin/ffmpeg -hide_banner -filters | grep -E 'acrusher|highpass|lowpass' ||: )
+  && ( /usr/src/ffmpeg/bin/ffmpeg -hide_banner -filters | grep -E 'acrusher|highpass|lowpass|aecho' ||: )
 
 WORKDIR /usr/src/ffmpeg
 RUN mkdir -p /usr/local/ffmpeg/bin /usr/local/ffmpeg/lib \
@@ -198,9 +199,7 @@ RUN busybox rm -vf appsettings.yml \
 RUN ffmpeg -hide_banner -version && \
     ffmpeg -hide_banner -protocols | grep -E '^[[:space:]]*unix$' && \
     ffmpeg -hide_banner -muxers | grep -E '[[:space:]]E[[:space:]]+ogg' && \
-    ffmpeg -hide_banner -filters | grep highpass && \
-    ffmpeg -hide_banner -filters | grep lowpass && \
-    ffmpeg -hide_banner -filters | grep acrusher
+    ffmpeg -hide_banner -filters | grep -E 'acrusher|highpass|lowpass|aecho'
 
 USER ${APP_UID}
 ENTRYPOINT ["dotnet", "SS14.Watchdog.dll"]
