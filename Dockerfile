@@ -164,6 +164,7 @@ ENV TZ=Etc/UTC \
 
 # small tunning for SS14
 ENV DOTNET_CLI_HOME="/tmp" \
+  DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp \
   GLIBC_TUNABLES="glibc.rtld.dynamic_sort=1" \
   DOTNET_TieredPGO="1" \
   DOTNET_TC_QuickJitForLoops="1" \
