@@ -133,7 +133,8 @@ RUN dotnet publish SS14.Watchdog/SS14.Watchdog.csproj \
   /p:SelfContained=false \
   /p:UseAppHost=false \
   /p:DebugType=None \
-  /p:DebugSymbols=false
+  /p:DebugSymbols=false \
+  && curl -fq -SsL https://aka.ms/dotnet-gcdump/linux-x64 > ./dist/dotnet-gcdump
 
 # libz for MonoPosixHelper.
 RUN mkdir -p /native-libs && \
@@ -153,9 +154,11 @@ SHELL ["/bin/sh", "-eo", "pipefail", "-c"]
 
 # common production-ready env
 ENV TZ=Etc/UTC \
+  TMPDIR=/tmp \
   DOTNET_ENVIRONMENT=Production \
   ASPNETCORE_ENVIRONMENT=Production \
-  DOTNET_EnableDiagnostics=0 \
+  DOTNET_EnableDiagnostics=1 \
+  COMPlus_EnableDiagnostics=1 \
   LD_LIBRARY_PATH="/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib:/usr/local/lib:/usr/lib/ffmpeg" \
   PATH="/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
@@ -191,6 +194,7 @@ COPY --from=build --chown=0:${APP_UID} /usr/sources/ss14.watchdog/dist/ ./
 # post-copy image cleanup
 RUN busybox rm -vf appsettings.yml \
   && busybox chmod o+w /data/ss14/watchdog \
+  && busybox chmod a+x /data/ss14/watchdog/dotnet-gcdump \
   && busybox ln -s /data/ss14/instances instances \
   && busybox ln -s /data/ss14/configs/watchdog.appsettings.yml appsettings.yml
 
